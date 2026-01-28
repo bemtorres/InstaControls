@@ -14,6 +14,9 @@
 
 - **Controles de Video Nativos**: Habilita la barra de reproducción estándar del navegador (play/pausa, volumen, pantalla completa, velocidad de reproducción) sobre cualquier video de Instagram.
 - **Descargas Universales**: Descarga **Videos** (Reels, Stories, Feed) y **Fotos** de alta calidad directamente a tu ordenador.
+- **Modo PiP**: Visualiza videos en una ventana flotante (Picture-in-Picture) mientras navegas por otras pestañas.
+- **Interfaz Animada**: Los controles de video aparecen suavemente al pasar el cursor y se ocultan automáticamente.
+- **Botón Fijo en Imágenes**: El botón de descarga en imágenes permanece visible para facilitar el acceso rápido.
 - **Interfaz Discreta**: Los botones aparecen sutilmente sobre el contenido (video o foto) y no interfieren con la navegación.
 - **Compatible con Reels y Stories**: Ajustado para no superponerse con los controles nativos de la interfaz de Instagram.
 
@@ -31,6 +34,7 @@
 2.  Navega por tu feed, historias o reels.
 3.  Verás iconos nuevos sobre el contenido multimedia:
     *   **Icono de Ajustes**: Muestra los controles de video nativos.
+    *   **Icono de PiP**: Abre el video en una ventana flotante (Picture-in-Picture).
     *   **Icono de Descarga**: Guarda la foto o video actual en tu dispositivo.
 
 ## Autor

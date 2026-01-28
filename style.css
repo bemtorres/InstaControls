@@ -1,17 +1,26 @@
 .insta-tools-overlay {
   position: absolute;
   top: 60px;
-  /* Shifted down to avoid conflicts with native header icons (Reels/Stories) */
   right: 12px;
   z-index: 2147483647 !important;
-  /* Max Z-Index to ensure it stays on top */
   display: flex;
   flex-direction: column;
-  /* Stack vertically to save horizontal space */
   gap: 8px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   pointer-events: auto;
-  /* Ensure clicks pass to us */
+
+  /* Animation: Hidden by default */
+  opacity: 0;
+  transform: translateX(10px);
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Show when parent is hovered OR if it is a static overlay (images) */
+.insta-wrapper-hook:hover .insta-tools-overlay,
+.insta-tools-overlay:hover,
+.insta-tools-overlay.insta-static-overlay {
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 .insta-tools-btn {

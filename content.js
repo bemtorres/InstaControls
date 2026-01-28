@@ -7,12 +7,15 @@ function addVideoTools(video) {
 
   // Mark as processed
   video.dataset.hasInstaTools = "true";
+  video.disablePictureInPicture = false;
   parent.style.position = "relative"; // Ensure we can position absolute
+  parent.classList.add("insta-wrapper-hook");
 
   const overlay = document.createElement("div");
   overlay.className = "insta-tools-overlay";
 
   // Icons (SVG strings)
+  const iconPiP = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><rect x="12" y="11" width="8" height="6" rx="1" ry="1"/></svg>`;
   const iconControls = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></svg>`;
   const iconHide = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
   const iconDownload = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
@@ -38,6 +41,25 @@ function addVideoTools(video) {
       startControlsBtn.title = "Ocultar Controles / Hide Controls";
       // Bring video to front so standard controls are clickable
       video.style.zIndex = "100";
+    }
+  };
+
+  // Create PiP Button
+  const pipBtn = document.createElement("button");
+  pipBtn.className = "insta-tools-btn";
+  pipBtn.innerHTML = iconPiP;
+  pipBtn.title = "Ventana Flotante / Picture-in-Picture";
+  pipBtn.onclick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      if (document.pictureInPictureElement !== video) {
+        await video.requestPictureInPicture();
+      } else {
+        await document.exitPictureInPicture();
+      }
+    } catch (err) {
+      console.error("PiP failed:", err);
     }
   };
 
@@ -75,6 +97,7 @@ function addVideoTools(video) {
   };
 
   overlay.appendChild(startControlsBtn);
+  overlay.appendChild(pipBtn);
   overlay.appendChild(downloadBtn);
   parent.appendChild(overlay);
 }
@@ -96,6 +119,8 @@ function addImageTools(img) {
   const parent = img.parentElement;
   if (!parent) return;
 
+  parent.classList.add("insta-wrapper-hook");
+
   img.dataset.hasInstaTools = "true";
 
   // Ensure we can position absolute relative to this parent
@@ -107,7 +132,7 @@ function addImageTools(img) {
   }
 
   const overlay = document.createElement("div");
-  overlay.className = "insta-tools-overlay";
+  overlay.className = "insta-tools-overlay insta-static-overlay";
 
   // Icon for download
   const iconDownload = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
