@@ -18,6 +18,7 @@ body {
   display: flex;
   justify-content: center;
   min-height: 100vh;
+  flex-direction: column;
 }
 
 .container {
@@ -25,6 +26,26 @@ body {
   width: 100%;
   padding: 40px 20px;
   text-align: center;
+  margin: 0 auto;
+}
+
+.preview-container {
+  margin: 0 auto 50px auto;
+  max-width: 700px;
+  position: relative;
+}
+
+.preview-img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.preview-img:hover {
+  transform: scale(1.02);
 }
 
 .logo {

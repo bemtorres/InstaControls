@@ -18,12 +18,12 @@
     }
   ],
   "icons": {
-    "16": "InstaControls.png",
-    "48": "InstaControls.png",
-    "128": "InstaControls.png"
+    "16": "assets/instacontrols.png",
+    "48": "assets/instacontrols.png",
+    "128": "assets/instacontrols.png"
   },
   "action": {
-    "default_icon": "InstaControls.png"
+    "default_icon": "assets/instacontrols.png"
   },
   "background": {
     "service_worker": "background.js"
