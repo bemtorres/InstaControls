@@ -990,4 +990,55 @@ video[controls] {
   color: #d1d5db;
 }
 
+/* Custom premium text input in sidebar */
+.text-input-small {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #f3f4f6;
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+  margin-top: 4px;
+  box-sizing: border-box;
+}
+
+.text-input-small:focus {
+  border-color: var(--fav-accent-color);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Global Background System */
+#insta-custom-global-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -9999;
+  pointer-events: none;
+  overflow: hidden;
+  display: none;
+}
+#insta-custom-global-bg .global-bg-image {
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  bottom: -20px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: filter 0.2s ease;
+}
+#insta-custom-global-bg .global-bg-tint {
+  position: absolute;
+  inset: 0;
+  transition: background 0.3s ease;
+}
+
+
 

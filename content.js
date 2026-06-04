@@ -589,6 +589,27 @@ function processNode(node) {
   }
 }
 
+function injectDOMIdentifiers() {
+  // 1. Identify wrappers of image/video (class contains _aagv)
+  document.querySelectorAll("div._aagv, .insta-wrapper-hook").forEach(container => {
+    container.setAttribute("data-insta-role", "media-container");
+    
+    // Find sibling overlays positioned absolutely over the image/video
+    let sibling = container.nextElementSibling;
+    while (sibling) {
+      if (sibling.tagName === "DIV") {
+        sibling.setAttribute("data-insta-role", "protection-overlay");
+      }
+      sibling = sibling.nextElementSibling;
+    }
+  });
+
+  // 2. Identify html-div divs (structural layout divs)
+  document.querySelectorAll("div.html-div, div[class*='html-div']").forEach((div, index) => {
+    div.setAttribute("data-insta-role", `structural-div-${index + 1}`);
+  });
+}
+
 // Observer to handle dynamic content (SPA)
 const observer = new MutationObserver((mutations) => {
   checkPathname();
@@ -599,6 +620,7 @@ const observer = new MutationObserver((mutations) => {
       processNode(mutation.target);
     }
   });
+  injectDOMIdentifiers();
 });
 
 // Start observing
@@ -660,32 +682,62 @@ function applyTheme(accent, bgImageBase64, bordersGlow, bgTint, bgBlur) {
     trigger.style.boxShadow = `0 4px 16px ${activeColor}60`;
   }
 
+  // Set global background elements
+  let globalBg = document.getElementById("insta-custom-global-bg");
+  if (!globalBg) {
+    globalBg = document.createElement("div");
+    globalBg.id = "insta-custom-global-bg";
+    globalBg.innerHTML = `
+      <div class="global-bg-image"></div>
+      <div class="global-bg-tint"></div>
+    `;
+    document.body.prepend(globalBg);
+  }
+
+  const globalBgImg = globalBg.querySelector(".global-bg-image");
+  const globalBgTint = globalBg.querySelector(".global-bg-tint");
+  const tints = {
+    default: "rgba(10, 7, 18, 0.82)",
+    slate: "rgba(30, 41, 59, 0.85)",
+    midnight: "rgba(15, 23, 42, 0.85)",
+    forest: "rgba(9, 29, 21, 0.85)",
+    black: "rgba(0, 0, 0, 0.95)"
+  };
+  const activeTintColor = tints[bgTint] || tints.default;
+
   // Set the background image
   const bgOverlay = sidebar.querySelector(".sidebar-bg-overlay");
-  if (bgOverlay) {
-    if (bgImageBase64 && bgImageBase64 !== "default") {
-      bgOverlay.style.backgroundImage = `url('${bgImageBase64}')`;
-      bgOverlay.style.display = "block";
+  if (bgImageBase64 && bgImageBase64 !== "default") {
+    document.body.classList.add("insta-has-custom-bg");
+    globalBg.style.display = "block";
+    if (globalBgImg) {
+      globalBgImg.style.backgroundImage = `url('${bgImageBase64}')`;
       const blurVal = bgBlur !== undefined ? bgBlur : 15;
-      bgOverlay.style.filter = `blur(${blurVal}px)`;
-    } else {
-      bgOverlay.style.backgroundImage = "none";
-      bgOverlay.style.display = "none";
-      bgOverlay.style.filter = "none";
+      globalBgImg.style.filter = `blur(${blurVal}px)`;
     }
+    if (globalBgTint) {
+      globalBgTint.style.background = activeTintColor;
+    }
+  } else {
+    document.body.classList.remove("insta-has-custom-bg");
+    globalBg.style.display = "none";
+    if (globalBgImg) {
+      globalBgImg.style.backgroundImage = "none";
+      globalBgImg.style.filter = "none";
+    }
+  }
+
+  // Force sidebar background image overlay to be hidden/neutral
+  if (bgOverlay) {
+    bgOverlay.style.backgroundImage = "none";
+    bgOverlay.style.display = "none";
+    bgOverlay.style.filter = "none";
   }
 
   // Set the background tint color
   const tintOverlay = sidebar.querySelector(".sidebar-tint-overlay");
   if (tintOverlay) {
-    const tints = {
-      default: "rgba(10, 7, 18, 0.82)",
-      slate: "rgba(30, 41, 59, 0.85)",
-      midnight: "rgba(15, 23, 42, 0.85)",
-      forest: "rgba(9, 29, 21, 0.85)",
-      black: "rgba(0, 0, 0, 0.95)"
-    };
-    tintOverlay.style.background = tints[bgTint] || tints.default;
+    tintOverlay.style.background = activeTintColor;
     const blurVal = bgBlur !== undefined ? bgBlur : 15;
     tintOverlay.style.backdropFilter = `blur(${blurVal}px)`;
     tintOverlay.style.webkitBackdropFilter = `blur(${blurVal}px)`;
@@ -841,17 +893,43 @@ function applyInstagramCustomizations(igTheme, igCustomFont, compactMode, igFont
           --secondary-background: rgb(${activeTheme.bgSecondary}) !important;
         }
         
-        /* Direct target for html-div elements to enforce background colors */
-        body, html, [role="main"], main,
-        div.html-div, div[class*="html-div"] {
+        /* Direct target for html-div elements to enforce background colors when custom background is NOT active */
+        body:not(.insta-has-custom-bg), 
+        body:not(.insta-has-custom-bg) html, 
+        body:not(.insta-has-custom-bg) [role="main"], 
+        body:not(.insta-has-custom-bg) main,
+        body:not(.insta-has-custom-bg) div.html-div, 
+        body:not(.insta-has-custom-bg) div[class*="html-div"] {
           background-color: rgb(${activeTheme.bgPrimary}) !important;
         }
 
-        /* Enforce theme backgrounds on articles, navs and custom container divs */
-        article, 
-        div._ab8w._ab94._ab99._ab9f._ab9m._ab9p._ab9x,
-        div._aaeq, div._ab8w._ab94._ab99._ab9f._ab9m._ab9p._ab9s {
+        /* Enforce theme backgrounds on articles, navs and custom container divs when custom background is NOT active */
+        body:not(.insta-has-custom-bg) article, 
+        body:not(.insta-has-custom-bg) div._ab8w._ab94._ab99._ab9f._ab9m._ab9p._ab9x,
+        body:not(.insta-has-custom-bg) div._aaeq, 
+        body:not(.insta-has-custom-bg) div._ab8w._ab94._ab99._ab9f._ab9m._ab9p._ab9s {
           background-color: rgb(${activeTheme.bgSecondary}) !important;
+        }
+
+        /* When custom background IS active - make them transparent / glassmorphic */
+        body.insta-has-custom-bg, 
+        body.insta-has-custom-bg html, 
+        body.insta-has-custom-bg [role="main"], 
+        body.insta-has-custom-bg main,
+        body.insta-has-custom-bg div.html-div, 
+        body.insta-has-custom-bg div[class*="html-div"] {
+          background-color: transparent !important;
+          background-image: none !important;
+        }
+
+        body.insta-has-custom-bg article, 
+        body.insta-has-custom-bg div._ab8w._ab94._ab99._ab9f._ab9m._ab9p._ab9x,
+        body.insta-has-custom-bg div._aaeq, 
+        body.insta-has-custom-bg div._ab8w._ab94._ab99._ab9f._ab9m._ab9p._ab9s {
+          background-color: rgba(${activeTheme.bgSecondary}, 0.55) !important;
+          backdrop-filter: blur(8px) !important;
+          -webkit-backdrop-filter: blur(8px) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
         }
         
         a, span[role="link"], ._aa-y, ._aacl._aaco._aacw._aacx._aad7._aade,
@@ -920,6 +998,1254 @@ function applyInstagramCustomizations(igTheme, igCustomFont, compactMode, igFont
   }
 }
 
+function applyMatrixMode(active) {
+  let matrixStyleEl = document.getElementById("insta-matrix-mode-style");
+  let canvas = document.getElementById("insta-matrix-canvas");
+  if (active) {
+    if (!matrixStyleEl) {
+      matrixStyleEl = document.createElement("style");
+      matrixStyleEl.id = "insta-matrix-mode-style";
+      document.head.appendChild(matrixStyleEl);
+    }
+    matrixStyleEl.innerHTML = `
+      /* Matrix Mode hacker theme */
+      :root, html, body {
+        --ig-primary-background: 0, 0, 0 !important;
+        --ig-secondary-background: 0, 0, 0 !important;
+        --primary-background: rgb(0, 0, 0) !important;
+        --secondary-background: rgb(0, 0, 0) !important;
+        --ig-link: #00ff00 !important;
+        --ig-primary-button-background: #00ff00 !important;
+        --ig-primary-button-hover-background: #00dd00 !important;
+        --link: #00ff00 !important;
+        --accent-blue: #00ff00 !important;
+        --ig-accent-blue: #00ff00 !important;
+      }
+
+      *:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not(#insta-favorites-trigger):not(#insta-favorites-trigger *) {
+        font-family: 'Courier New', Courier, monospace !important;
+        color: #00ff00 !important;
+        text-shadow: 0 0 4px rgba(0, 255, 0, 0.6) !important;
+      }
+      
+      body, html, main, [role="main"], article, nav, header, section, input, textarea, button,
+      div.html-div, div[class*="html-div"], div[data-insta-role="structural-div-1"] {
+        background-color: transparent !important;
+        background-image: none !important;
+        border-color: #00ff00 !important;
+        box-shadow: none !important;
+      }
+      
+      /* Make divs transparent so overlays don't cover photos, excluding our sidebar */
+      div:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not([data-insta-role="structural-div-1"]) {
+        background-color: transparent !important;
+        border-color: #00ff00 !important;
+        box-shadow: none !important;
+      }
+      
+      /* Keep modal dialogs and lightboxes opaque black */
+      div[role="presentation"], div[role="dialog"] {
+        background-color: rgba(0, 0, 0, 0.95) !important;
+      }
+      
+      ::-webkit-scrollbar {
+        width: 8px !important;
+        background-color: #000000 !important;
+      }
+      ::-webkit-scrollbar-thumb {
+        background-color: #00ff00 !important;
+        border-radius: 4px !important;
+      }
+      
+      svg {
+        fill: #00ff00 !important;
+        stroke: #00ff00 !important;
+        color: #00ff00 !important;
+      }
+      svg * {
+        fill: #00ff00 !important;
+        stroke: #00ff00 !important;
+      }
+      
+      /* Add hacker green tint filter to images and videos without turning them black */
+      img, video {
+        filter: sepia(1) hue-rotate(85deg) saturate(2) brightness(0.9) !important;
+        border: 1px solid #00ff00 !important;
+      }
+      
+      a:hover, button:hover {
+        color: #ffffff !important;
+        text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00 !important;
+      }
+    `;
+
+    if (!canvas) {
+      canvas = document.createElement("canvas");
+      canvas.id = "insta-matrix-canvas";
+      canvas.style.position = "fixed";
+      canvas.style.top = "0";
+      canvas.style.left = "0";
+      canvas.style.width = "100vw";
+      canvas.style.height = "100vh";
+      canvas.style.zIndex = "-999";
+      canvas.style.pointerEvents = "none";
+      document.body.appendChild(canvas);
+    }
+
+    const ctx = canvas.getContext("2d");
+    
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    window.instaMatrixResizeFn = resizeCanvas;
+
+    // Japanese/Katakana characters + numbers + Latin uppercase
+    const matrixChars = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const alphabet = matrixChars.split("");
+    const fontSize = 16;
+    let columns = Math.floor(canvas.width / fontSize) + 1;
+    let rainDrops = Array(columns).fill(1);
+
+    const draw = () => {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#0f0";
+      ctx.font = `${fontSize}px monospace`;
+
+      let newCols = Math.floor(canvas.width / fontSize) + 1;
+      if (newCols !== rainDrops.length) {
+        if (newCols > rainDrops.length) {
+          while(rainDrops.length < newCols) rainDrops.push(1);
+        } else {
+          rainDrops = rainDrops.slice(0, newCols);
+        }
+      }
+
+      for (let i = 0; i < rainDrops.length; i++) {
+        const text = alphabet[Math.floor(Math.random() * alphabet.length)];
+        ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+        if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          rainDrops[i] = 0;
+        }
+        rainDrops[i]++;
+      }
+    };
+
+    if (window.instaMatrixInterval) {
+      clearInterval(window.instaMatrixInterval);
+    }
+    window.instaMatrixInterval = setInterval(draw, 33);
+  } else {
+    if (matrixStyleEl) matrixStyleEl.remove();
+    if (canvas) canvas.remove();
+    if (window.instaMatrixInterval) {
+      clearInterval(window.instaMatrixInterval);
+      window.instaMatrixInterval = null;
+    }
+    if (window.instaMatrixResizeFn) {
+      window.removeEventListener("resize", window.instaMatrixResizeFn);
+      window.instaMatrixResizeFn = null;
+    }
+  }
+}
+
+// -------------------- Hacker Mode --------------------
+// Global store for elements affected by Hacker mode
+let hackerElements = [];
+
+function applyHackerMode(active) {
+  let styleEl = document.getElementById("insta-hacker-mode-style");
+  let canvas = document.getElementById("insta-hacker-canvas");
+  if (active) {
+    // Inject style if not present
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "insta-hacker-mode-style";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `
+      /* Hacker mode base styles */
+      :root, html, body {
+        --ig-primary-background: 0,0,0 !important;
+        --ig-secondary-background: 0,0,0 !important;
+        --primary-background: rgb(0,0,0) !important;
+        --secondary-background: rgb(0,0,0) !important;
+        background-color: rgb(0,0,0) !important;
+        color: #00ff00 !important;
+        font-family: 'Courier New', Courier, monospace !important;
+      }
+      *:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not(#insta-favorites-trigger):not(#insta-favorites-trigger *) {
+        font-family: 'Courier New', Courier, monospace !important;
+        color: #00ff00 !important;
+        text-shadow: 0 0 4px rgba(0,255,0,0.6) !important;
+      }
+      body, html, main, [role="main"], article, nav, header, section, input, textarea, button,
+      div.html-div, div[class*="html-div"], div[data-insta-role="structural-div-1"] {
+        background-color: transparent !important;
+        background-image: none !important;
+        border-color: rgba(0,255,0,0.3) !important;
+        box-shadow: none !important;
+      }
+      div:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not([data-insta-role="structural-div-1"]) {
+        background-color: transparent !important;
+        border-color: rgba(0,255,0,0.2) !important;
+        box-shadow: none !important;
+      }
+      div[role="presentation"], div[role="dialog"] {
+        background-color: rgba(0, 0, 0, 0.95) !important;
+      }
+      ::-webkit-scrollbar { width: 8px !important; background-color: #000 !important; }
+      ::-webkit-scrollbar-thumb { background-color: #00ff00 !important; border-radius: 4px !important; }
+      svg { fill: #00ff00 !important; stroke: #00ff00 !important; color: #00ff00 !important; }
+      svg * { fill: #00ff00 !important; stroke: #00ff00 !important; }
+      img, video {
+        filter: sepia(1) hue-rotate(85deg) saturate(2) brightness(0.9) !important;
+        border: 1px solid #00ff00 !important;
+      }
+      a:hover, button:hover {
+        color: #ffffff !important;
+        text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00 !important;
+      }
+      /* Hacker obfuscation classes */
+      [data-hacker-obfuscated="true"] {
+        cursor: pointer !important;
+        transition: opacity 0.2s ease !important;
+      }
+      [data-hacker-obfuscated="true"]:hover {
+        opacity: 1 !important;
+        text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00 !important;
+      }
+    `;
+
+    // Create falling code canvas
+    if (!canvas) {
+      canvas = document.createElement("canvas");
+      canvas.id = "insta-hacker-canvas";
+      canvas.style.position = "fixed";
+      canvas.style.top = "0";
+      canvas.style.left = "0";
+      canvas.style.width = "100vw";
+      canvas.style.height = "100vh";
+      canvas.style.zIndex = "-999";
+      canvas.style.pointerEvents = "none";
+      document.body.appendChild(canvas);
+    }
+
+    const ctx = canvas.getContext("2d");
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    window.instaHackerResizeFn = resizeCanvas;
+
+    // Hacker rain characters — mixed scripts
+    const hackerChars = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワンΔΣΩΨΦΛΞΠ01ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ";
+    const alphabet = hackerChars.split("");
+    const fontSize = 16;
+    let columns = Math.floor(canvas.width / fontSize) + 1;
+    let rainDrops = Array(columns).fill(1);
+
+    const draw = () => {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#0f0";
+      ctx.font = `${fontSize}px monospace`;
+
+      let newCols = Math.floor(canvas.width / fontSize) + 1;
+      if (newCols !== rainDrops.length) {
+        if (newCols > rainDrops.length) {
+          while (rainDrops.length < newCols) rainDrops.push(1);
+        } else {
+          rainDrops = rainDrops.slice(0, newCols);
+        }
+      }
+
+      for (let i = 0; i < rainDrops.length; i++) {
+        const text = alphabet[Math.floor(Math.random() * alphabet.length)];
+        ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+        if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          rainDrops[i] = 0;
+        }
+        rainDrops[i]++;
+      }
+    };
+
+    if (window.instaHackerInterval) clearInterval(window.instaHackerInterval);
+    window.instaHackerInterval = setInterval(draw, 33);
+
+    // Obfuscate visible text elements
+    const pool = "アイウエオカキクケコサシスセソタチツテトΔΣΩΨΦΛΞΠ01ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰabcdefghijklmnopqrstuvwxyz0123456789!@#$%&";
+    const randomString = (len) => {
+      let s = "";
+      for (let i = 0; i < len; i++) {
+        s += pool.charAt(Math.floor(Math.random() * pool.length));
+      }
+      return s;
+    };
+
+    // Target text-containing elements inside articles
+    const textEls = document.querySelectorAll("article span, article a, article h2, article h1");
+    textEls.forEach(el => {
+      // Skip elements that are inside our sidebar or have no meaningful text
+      if (el.closest("#insta-favorites-sidebar") || el.closest("#insta-favorites-trigger")) return;
+      if (!el.textContent.trim() || el.children.length > 0) return;
+      if (el.dataset.hackerOriginal) return; // already processed
+
+      const original = el.textContent;
+      el.dataset.hackerOriginal = original;
+      el.dataset.hackerObfuscated = "true";
+      el.textContent = randomString(original.length);
+
+      const showOriginal = () => { el.textContent = el.dataset.hackerOriginal; };
+      const hideOriginal = () => { el.textContent = randomString(el.dataset.hackerOriginal.length); };
+      el.addEventListener("mouseenter", showOriginal);
+      el.addEventListener("mouseleave", hideOriginal);
+      hackerElements.push({ el, showOriginal, hideOriginal });
+    });
+  } else {
+    // Clean up style and canvas
+    if (styleEl) styleEl.remove();
+    if (canvas) canvas.remove();
+    if (window.instaHackerInterval) {
+      clearInterval(window.instaHackerInterval);
+      window.instaHackerInterval = null;
+    }
+    if (window.instaHackerResizeFn) {
+      window.removeEventListener("resize", window.instaHackerResizeFn);
+      window.instaHackerResizeFn = null;
+    }
+    // Restore original texts and detach listeners
+    hackerElements.forEach(item => {
+      const { el, showOriginal, hideOriginal } = item;
+      el.removeEventListener("mouseenter", showOriginal);
+      el.removeEventListener("mouseleave", hideOriginal);
+      if (el.dataset.hackerOriginal) {
+        el.textContent = el.dataset.hackerOriginal;
+        delete el.dataset.hackerOriginal;
+        delete el.dataset.hackerObfuscated;
+      }
+    });
+    hackerElements = [];
+  }
+}
+
+// End of Hacker mode
+
+// ---------------------------------------------------
+
+// Existing code continues below
+
+
+function applyAngineMode(active) {
+  let angineStyleEl = document.getElementById("insta-angine-mode-style");
+  if (active) {
+    if (!angineStyleEl) {
+      angineStyleEl = document.createElement("style");
+      angineStyleEl.id = "insta-angine-mode-style";
+      document.head.appendChild(angineStyleEl);
+    }
+    angineStyleEl.innerHTML = `
+      /* Angine Mode theme (Angine de Poitrine) */
+      *:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not(#insta-favorites-trigger):not(#insta-favorites-trigger *) {
+        color: #ffffff !important;
+        text-shadow: none !important;
+      }
+      
+      body, html, main, [role="main"], article, nav, header, section, input, textarea, button,
+      div.html-div:not([data-insta-role="structural-div-1"]), div[class*="html-div"]:not([data-insta-role="structural-div-1"]) {
+        background-color: #000000 !important;
+        background-image: none !important;
+        border-color: #ffffff !important;
+        box-shadow: none !important;
+      }
+      
+      /* Apply the dotted pattern and parpadeo + zoom animation directly to the outermost layout div */
+      div[data-insta-role="structural-div-1"] {
+        background-color: #000000 !important;
+        background-image: 
+          radial-gradient(rgba(255, 255, 255, 0.28) 2px, transparent 2px),
+          radial-gradient(rgba(255, 255, 255, 0.28) 2px, transparent 2px) !important;
+        background-size: 32px 32px !important;
+        background-position: 0 0, 16px 16px !important;
+        animation: angine-intro-anim 2.5s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+      }
+      
+      /* Make divs transparent so overlays don't cover photos, excluding our sidebar */
+      div:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not([data-insta-role="structural-div-1"]) {
+        background-color: transparent !important;
+        border-color: rgba(255, 255, 255, 0.3) !important;
+        box-shadow: none !important;
+      }
+      
+      /* Keep modal dialogs and lightboxes opaque black with dots */
+      div[role="presentation"], div[role="dialog"] {
+        background-color: #000000 !important;
+        background-image: 
+          radial-gradient(rgba(255, 255, 255, 0.28) 2px, transparent 2px),
+          radial-gradient(rgba(255, 255, 255, 0.28) 2px, transparent 2px) !important;
+        background-size: 32px 32px !important;
+        background-position: 0 0, 16px 16px !important;
+      }
+      
+      svg {
+        fill: #ffffff !important;
+        stroke: #ffffff !important;
+        color: #ffffff !important;
+      }
+      svg * {
+        fill: #ffffff !important;
+        stroke: #ffffff !important;
+      }
+      
+      a:hover, button:hover {
+        color: #cccccc !important;
+      }
+
+      @keyframes angine-intro-anim {
+        0% {
+          background-image: 
+            radial-gradient(rgba(255, 255, 255, 0.05) 2px, transparent 2px),
+            radial-gradient(rgba(255, 255, 255, 0.05) 2px, transparent 2px) !important;
+          background-size: 16px 16px !important;
+          background-position: 0 0, 8px 8px !important;
+        }
+        20% {
+          background-image: 
+            radial-gradient(rgba(255, 255, 255, 0.28) 2px, transparent 2px),
+            radial-gradient(rgba(255, 255, 255, 0.28) 2px, transparent 2px) !important;
+          background-size: 40px 40px !important;
+          background-position: 0 0, 20px 20px !important;
+        }
+        40% {
+          background-image: 
+            radial-gradient(rgba(255, 255, 255, 0.05) 2px, transparent 2px),
+            radial-gradient(rgba(255, 255, 255, 0.05) 2px, transparent 2px) !important;
+          background-size: 24px 24px !important;
+          background-position: 0 0, 12px 12px !important;
+        }
+        60% {
+          background-image: 
+            radial-gradient(rgba(255, 255, 255, 0.28) 2px, transparent 2px),
+            radial-gradient(rgba(255, 255, 255, 0.28) 2px, transparent 2px) !important;
+          background-size: 36px 36px !important;
+          background-position: 0 0, 18px 18px !important;
+        }
+        80% {
+          background-image: 
+            radial-gradient(rgba(255, 255, 255, 0.1) 2px, transparent 2px),
+            radial-gradient(rgba(255, 255, 255, 0.1) 2px, transparent 2px) !important;
+          background-size: 30px 30px !important;
+          background-position: 0 0, 15px 15px !important;
+        }
+        100% {
+          background-image: 
+            radial-gradient(rgba(255, 255, 255, 0.28) 2px, transparent 2px),
+            radial-gradient(rgba(255, 255, 255, 0.28) 2px, transparent 2px) !important;
+          background-size: 32px 32px !important;
+          background-position: 0 0, 16px 16px !important;
+        }
+      }
+    `;
+  } else {
+    if (angineStyleEl) angineStyleEl.remove();
+  }
+}
+
+function applyCyberpunkMode(active) {
+  let styleEl = document.getElementById("insta-cyberpunk-mode-style");
+  if (active) {
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "insta-cyberpunk-mode-style";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `
+      /* Cyberpunk Mode neon theme */
+      *:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not(#insta-favorites-trigger):not(#insta-favorites-trigger *) {
+        color: #ffffff !important;
+        animation: cyberpunk-flicker 3s infinite alternate !important;
+      }
+      
+      body, html, main, [role="main"], article, nav, header, section, input, textarea, button,
+      div.html-div, div[class*="html-div"], div[data-insta-role="structural-div-1"] {
+        background-color: #0d0c1d !important;
+        background-image: none !important;
+        border-color: #ff0055 !important;
+        box-shadow: 0 0 10px rgba(255, 0, 85, 0.2) !important;
+      }
+      
+      div:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not([data-insta-role="structural-div-1"]) {
+        background-color: transparent !important;
+        border-color: rgba(0, 240, 255, 0.4) !important;
+      }
+      
+      a, span[role="link"], ._aa-y, button {
+        color: #00f0ff !important;
+        text-shadow: 0 0 5px #00f0ff !important;
+      }
+
+      img, video {
+        filter: saturate(1.8) contrast(1.2) hue-rotate(-10deg) !important;
+        border: 2px solid #00f0ff !important;
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.5) !important;
+      }
+
+      @keyframes cyberpunk-flicker {
+        0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+          text-shadow: 0 0 4px #fff, 0 0 8px #00f0ff, 0 0 12px #ff0055 !important;
+        }
+        20%, 24%, 55% {
+          text-shadow: none !important;
+        }
+      }
+    `;
+  } else {
+    if (styleEl) styleEl.remove();
+  }
+}
+
+function applyRetroMode(active) {
+  let styleEl = document.getElementById("insta-retro-mode-style");
+  let crtEl = document.getElementById("insta-crt-overlay");
+  if (active) {
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "insta-retro-mode-style";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `
+      @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+      
+      *:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not(#insta-favorites-trigger):not(#insta-favorites-trigger *) {
+        font-family: 'Press Start 2P', monospace !important;
+        font-size: 9px !important;
+        line-height: 1.6 !important;
+        text-transform: uppercase !important;
+        color: #0f380f !important;
+        text-shadow: none !important;
+      }
+      
+      body, html, main, [role="main"], div.html-div, div[class*="html-div"], div[data-insta-role="structural-div-1"] {
+        background-color: #9bbc0f !important;
+        background-image: none !important;
+        border-color: #0f380f !important;
+      }
+      
+      div:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not([data-insta-role="structural-div-1"]) {
+        background-color: transparent !important;
+        border-color: #0f380f !important;
+      }
+      
+      article, section, nav, header, input, select, textarea, button {
+        background-color: #8bac0f !important;
+        border: 3px solid #0f380f !important;
+        border-radius: 0px !important;
+        box-shadow: none !important;
+      }
+      
+      img, video {
+        filter: grayscale(1) contrast(1.4) !important;
+        border: 3px solid #0f380f !important;
+      }
+      
+      svg, svg * {
+        fill: #0f380f !important;
+        stroke: #0f380f !important;
+      }
+      
+      /* CRT scanline simulation */
+      #insta-crt-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 99999;
+        background: repeating-linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.12) 50%);
+        background-size: 100% 4px;
+        animation: crt-flicker 0.15s infinite;
+      }
+      
+      @keyframes crt-flicker {
+        0% { opacity: 0.95; }
+        50% { opacity: 1; }
+        100% { opacity: 0.96; }
+      }
+    `;
+    
+    if (!crtEl) {
+      crtEl = document.createElement("div");
+      crtEl.id = "insta-crt-overlay";
+      document.body.appendChild(crtEl);
+    }
+  } else {
+    if (styleEl) styleEl.remove();
+    if (crtEl) crtEl.remove();
+  }
+}
+
+function applyOceanMode(active) {
+  let styleEl = document.getElementById("insta-ocean-mode-style");
+  let bubbleContainer = document.getElementById("insta-ocean-bubbles");
+  
+  if (active) {
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "insta-ocean-mode-style";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `
+      body, html, main, [role="main"], div.html-div, div[class*="html-div"], div[data-insta-role="structural-div-1"] {
+        background: linear-gradient(180deg, #021526 0%, #03346e 100%) !important;
+        background-attachment: fixed !important;
+      }
+      
+      div:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not([data-insta-role="structural-div-1"]) {
+        background-color: transparent !important;
+      }
+      
+      article, section, nav, header, input, button {
+        background-color: rgba(3, 52, 110, 0.4) !important;
+        backdrop-filter: blur(5px) !important;
+        -webkit-backdrop-filter: blur(5px) !important;
+        border: 1px solid rgba(110, 172, 218, 0.3) !important;
+        border-radius: 16px !important;
+        animation: ocean-water-ripple 5s ease-in-out infinite alternate !important;
+      }
+      
+      *:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not(#insta-favorites-trigger):not(#insta-favorites-trigger *) {
+        color: #e2f1e7 !important;
+      }
+      
+      svg, svg * {
+        fill: #6eacda !important;
+        stroke: #6eacda !important;
+      }
+      
+      img, video {
+        border-radius: 12px !important;
+        animation: ocean-water-ripple 4.5s ease-in-out infinite alternate-reverse !important;
+      }
+
+      .ocean-bubble {
+        position: absolute;
+        bottom: -30px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        animation: float-up linear infinite;
+      }
+
+      @keyframes float-up {
+        0% {
+          transform: translateY(0) translateX(0);
+          opacity: 0;
+        }
+        10% { opacity: 0.6; }
+        90% { opacity: 0.6; }
+        100% {
+          transform: translateY(-110vh) translateX(50px);
+          opacity: 0;
+        }
+      }
+
+      @keyframes ocean-water-ripple {
+        0% {
+          transform: skewX(-1.5deg) translateY(0);
+        }
+        100% {
+          transform: skewX(1.5deg) translateY(6px);
+        }
+      }
+    `;
+
+    if (!bubbleContainer) {
+      bubbleContainer = document.createElement("div");
+      bubbleContainer.id = "insta-ocean-bubbles";
+      bubbleContainer.style.position = "fixed";
+      bubbleContainer.style.inset = "0";
+      bubbleContainer.style.pointerEvents = "none";
+      bubbleContainer.style.zIndex = "-999";
+      bubbleContainer.style.overflow = "hidden";
+      document.body.appendChild(bubbleContainer);
+      
+      for (let i = 0; i < 25; i++) {
+        const bubble = document.createElement("div");
+        bubble.className = "ocean-bubble";
+        bubble.style.left = `${Math.random() * 100}vw`;
+        const size = Math.random() * 15 + 5;
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.animationDelay = `${Math.random() * 6}s`;
+        bubble.style.animationDuration = `${Math.random() * 8 + 6}s`;
+        bubbleContainer.appendChild(bubble);
+      }
+    }
+  } else {
+    if (styleEl) styleEl.remove();
+    if (bubbleContainer) bubbleContainer.remove();
+  }
+}
+
+function applyPsychedelicMode(active) {
+  let styleEl = document.getElementById("insta-psychedelic-mode-style");
+  if (active) {
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "insta-psychedelic-mode-style";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `
+      body, html, main, [role="main"], div.html-div, div[class*="html-div"], div[data-insta-role="structural-div-1"] {
+        background: linear-gradient(45deg, #ff0055, #00f0ff, #00ff66, #ffcc00, #ff0055) !important;
+        background-size: 400% 400% !important;
+        animation: psychedelic-bg-shift 8s ease infinite !important;
+      }
+      
+      div:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not([data-insta-role="structural-div-1"]) {
+        background-color: transparent !important;
+      }
+      
+      *:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not(#insta-favorites-trigger):not(#insta-favorites-trigger *) {
+        animation: psychedelic-text-shift 4s linear infinite !important;
+      }
+      
+      img:hover, video:hover, article:hover {
+        animation: psychedelic-wobble 0.5s ease-in-out infinite alternate !important;
+      }
+      
+      @keyframes psychedelic-bg-shift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      
+      @keyframes psychedelic-text-shift {
+        0% { filter: hue-rotate(0deg); }
+        100% { filter: hue-rotate(360deg); }
+      }
+      
+      @keyframes psychedelic-wobble {
+        0% { transform: scale(1.05) rotate(-1deg) skewX(-2deg); }
+        100% { transform: scale(1.05) rotate(1deg) skewX(2deg); }
+      }
+    `;
+  } else {
+    if (styleEl) styleEl.remove();
+  }
+}
+
+function applyMinecraftMode(active) {
+  let styleEl = document.getElementById("insta-minecraft-mode-style");
+  if (active) {
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "insta-minecraft-mode-style";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `
+      @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+      
+      *:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not(#insta-favorites-trigger):not(#insta-favorites-trigger *) {
+        font-family: 'VT323', monospace !important;
+        font-size: 19px !important;
+        text-shadow: 2px 2px 0px #000000 !important;
+        color: #ffffff !important;
+      }
+      
+      body, html, main, [role="main"], div.html-div, div[class*="html-div"], div[data-insta-role="structural-div-1"] {
+        background-color: #2c2c2c !important;
+        background-image: 
+          linear-gradient(90deg, #1e1e1e 2px, transparent 2px),
+          linear-gradient(0deg, #1e1e1e 2px, transparent 2px),
+          linear-gradient(90deg, #444 1px, transparent 1px),
+          linear-gradient(0deg, #444 1px, transparent 1px) !important;
+        background-size: 32px 32px, 32px 32px, 8px 8px, 8px 8px !important;
+      }
+      
+      div:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not([data-insta-role="structural-div-1"]) {
+        background-color: transparent !important;
+      }
+      
+      article, section, nav, header, input, select, textarea, button {
+        background-color: #4a4a4a !important;
+        border: 4px solid #1a1a1a !important;
+        border-radius: 0px !important;
+        box-shadow: inset -4px -4px 0px #2a2a2a, inset 4px 4px 0px #6a6a6a !important;
+      }
+      
+      button:hover, [role="button"]:hover, a:hover {
+        background-color: #7a7a7a !important;
+        border-color: #ffff55 !important;
+      }
+      
+      svg, svg * {
+        fill: #55ff55 !important;
+        stroke: #55ff55 !important;
+      }
+
+      /* Unliked Pixel Heart override */
+      svg:has(path[d^="M16.792"]) {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'><path d='M1,0h2v1h-2z M5,0h2v1h-2z M0,1h1v3h-1z M4,1h1v2h-1z M8,1h1v3h-1z M1,4h1v1h-1z M7,4h1v1h-1z M2,5h1v1h-1z M6,5h1v1h-1z M3,6h1v1h-1z M5,6h1v1h-1z M4,7h1v1h-1z' fill='%23000'/><path d='M1,1h3v3h-3z M5,1h3v3h-3z M2,4h5v1h-5z M3,5h3v1h-3z M4,6h1v1h-1z' fill='rgba(0,0,0,0.35)'/></svg>") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        width: 24px !important;
+        height: 24px !important;
+      }
+      svg:has(path[d^="M16.792"]) * {
+        display: none !important;
+      }
+
+      /* Liked Pixel Heart override */
+      svg[color="rgb(255, 48, 64)"], 
+      svg[fill="rgb(255, 48, 64)"],
+      svg[color="#ff3040"],
+      svg:has(path[fill="rgb(255, 48, 64)"]),
+      svg:has(path[d^="M3.478"]),
+      svg:has(path[d^="M12 21.35"]) {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'><path d='M1,0h2v1h-2z M5,0h2v1h-2z M0,1h1v3h-1z M4,1h1v2h-1z M8,1h1v3h-1z M1,4h1v1h-1z M7,4h1v1h-1z M2,5h1v1h-1z M6,5h1v1h-1z M3,6h1v1h-1z M5,6h1v1h-1z M4,7h1v1h-1z' fill='%23000'/><path d='M1,1h3v3h-3z M5,1h3v3h-3z M2,4h5v1h-5z M3,5h3v1h-3z M4,6h1v1h-1z' fill='%23ff2222'/><rect x='1' y='1' width='1' height='1' fill='%23fff'/></svg>") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        width: 24px !important;
+        height: 24px !important;
+      }
+      svg[color="rgb(255, 48, 64)"] *, 
+      svg[fill="rgb(255, 48, 64)"] *,
+      svg[color="#ff3040"] *,
+      svg:has(path[fill="rgb(255, 48, 64)"]) *,
+      svg:has(path[d^="M3.478"]) *,
+      svg:has(path[d^="M12 21.35"]) * {
+        display: none !important;
+      }
+      
+      img, video {
+        border: 4px solid #1a1a1a !important;
+      }
+    `;
+  } else {
+    if (styleEl) styleEl.remove();
+  }
+}
+
+function applyYt05Mode(active) {
+  let styleEl = document.getElementById("insta-yt05-mode-style");
+  let ytHeader = document.getElementById("insta-yt05-header");
+  if (active) {
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "insta-yt05-mode-style";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `
+      /* YouTube 2005 Mode */
+      body, html, main, [role="main"], div.html-div, div[class*="html-div"], div[data-insta-role="structural-div-1"] {
+        background-color: #ffffff !important;
+        background-image: none !important;
+      }
+      
+      div:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not([data-insta-role="structural-div-1"]) {
+        background-color: transparent !important;
+        box-shadow: none !important;
+      }
+
+      *:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not(#insta-favorites-trigger):not(#insta-favorites-trigger *) {
+        font-family: Arial, Helvetica, sans-serif !important;
+        color: #333333 !important;
+        text-shadow: none !important;
+      }
+
+      /* Logo wrapper expansion to fit 240px YouTube slogan logo */
+      a[href="/"]:has(svg[aria-label="Instagram"]),
+      a[href="/"]:has(svg[aria-label="Logotipo de Instagram"]),
+      a[href="/"]:has(svg[aria-label="Instagram logo"]),
+      a[href="/"]:has(svg._8-yf) {
+        width: 240px !important;
+        height: 40px !important;
+        display: block !important;
+        overflow: visible !important;
+      }
+
+      /* Logo Replacement */
+      svg[aria-label="Instagram"],
+      svg[aria-label="Logotipo de Instagram"],
+      svg[aria-label="Instagram logo"],
+      svg._8-yf {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 40' width='240' height='40'><text x='5' y='26' font-family='Arial Black, Arial, sans-serif' font-weight='900' font-size='24' fill='%23000' letter-spacing='-1.5'>You</text><rect x='56' y='4' width='54' height='28' rx='6' ry='6' fill='%23ff0000'/><text x='60' y='25' font-family='Arial Black, Arial, sans-serif' font-weight='900' font-size='20' fill='%23ffffff' letter-spacing='-1'>Tube</text><text x='112' y='12' font-family='Arial, sans-serif' font-size='8' fill='%23666' font-weight='bold'>TM</text><text x='125' y='24' font-family='Arial, sans-serif' font-size='12' fill='%23777' font-weight='bold'>Broadcast Yourself</text></svg>") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: left center !important;
+        width: 240px !important;
+        height: 40px !important;
+      }
+      svg[aria-label="Instagram"] *,
+      svg[aria-label="Logotipo de Instagram"] *,
+      svg[aria-label="Instagram logo"] *,
+      svg._8-yf * {
+        display: none !important;
+      }
+
+      /* Link overrides */
+      a, span[role="link"], ._aa-y, ._aacl._aaco._aacw._aacx._aad7._aade {
+        color: #0033cc !important;
+        text-decoration: underline !important;
+        font-weight: normal !important;
+      }
+      a:hover, span[role="link"]:hover {
+        color: #cc0000 !important;
+      }
+
+      /* Article / Post Styling */
+      article {
+        background-color: #ffffff !important;
+        border: 1px solid #cccccc !important;
+        border-radius: 0px !important;
+        padding: 12px !important;
+        margin-bottom: 20px !important;
+        box-shadow: none !important;
+      }
+      article header {
+        background-color: #e5e5e5 !important;
+        border-bottom: 1px solid #cccccc !important;
+        margin: -12px -12px 10px -12px !important;
+        padding: 8px 12px !important;
+        border-radius: 0px !important;
+      }
+      article header a, article header span {
+        font-weight: bold !important;
+        color: #0033cc !important;
+      }
+
+      /* Add black border to video and images like YouTube player screen */
+      article div._aagv, article div._aajn, article video, article img {
+        border: 5px solid #000000 !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Sidebar navigation items styled as classic 2005 tabs */
+      div[role="navigation"] a, div[role="navigation"] div[role="button"] {
+        background: linear-gradient(180deg, #d2e3fc 0%, #aecbfa 100%) !important;
+        border: 1px solid #7baaf7 !important;
+        border-radius: 4px 4px 0 0 !important;
+        padding: 6px 12px !important;
+        margin-bottom: 6px !important;
+      }
+      div[role="navigation"] a:hover {
+        background: #aecbfa !important;
+      }
+      div[role="navigation"] svg {
+        display: none !important;
+      }
+      div[role="navigation"] span {
+        color: #0033cc !important;
+        text-decoration: underline !important;
+        font-weight: normal !important;
+      }
+
+      /* Action buttons style overrides */
+      /* Heart SVG replaced by 2005 rating star */
+      svg:has(path[d^="M16.792"]) {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffcc00'><path d='M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'/></svg>") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        width: 24px !important;
+        height: 24px !important;
+      }
+      svg:has(path[d^="M16.792"]) * {
+        display: none !important;
+      }
+
+      /* Red active liked heart -> filled red star */
+      svg[color="rgb(255, 48, 64)"], 
+      svg[fill="rgb(255, 48, 64)"],
+      svg[color="#ff3040"],
+      svg:has(path[fill="rgb(255, 48, 64)"]),
+      svg:has(path[d^="M3.478"]),
+      svg:has(path[d^="M12 21.35"]) {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cc0000'><path d='M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'/></svg>") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        width: 24px !important;
+        height: 24px !important;
+      }
+      svg[color="rgb(255, 48, 64)"] *, 
+      svg[fill="rgb(255, 48, 64)"] *,
+      svg[color="#ff3040"] *,
+      svg:has(path[fill="rgb(255, 48, 64)"]) *,
+      svg:has(path[d^="M3.478"]) *,
+      svg:has(path[d^="M12 21.35"]) * {
+        display: none !important;
+      }
+
+      /* Comment SVG override */
+      svg[aria-label="Comment"], svg[aria-label="Comentar"] {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230033cc'><path d='M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z'/></svg>") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+      }
+      svg[aria-label="Comment"] *, svg[aria-label="Comentar"] * {
+        display: none !important;
+      }
+
+      /* Share SVG override */
+      svg[aria-label="Share Post"], svg[aria-label="Compartir publicación"], svg[aria-label="Share"], svg[aria-label="Compartir"] {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230033cc'><path d='M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z'/></svg>") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+      }
+      svg[aria-label="Share Post"] *, svg[aria-label="Compartir publicación"] *, svg[aria-label="Share"] *, svg[aria-label="Compartir"] * {
+        display: none !important;
+      }
+
+      /* Save SVG override */
+      svg[aria-label="Save"], svg[aria-label="Guardar"] {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230033cc'><path d='M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z'/></svg>") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+      }
+      svg[aria-label="Save"] *, svg[aria-label="Guardar"] * {
+        display: none !important;
+      }
+
+      /* Suggestions bar right column boxes */
+      div._aaoz, div._as5c, div[class*="sidebar"], aside {
+        background-color: #fff9db !important;
+        border: 1px solid #ffe87c !important;
+        border-radius: 0px !important;
+        padding: 12px !important;
+        box-shadow: none !important;
+      }
+      div._aaoz::before, div._as5c::before, aside::before {
+        content: "Sign up for your free account!" !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+        color: #0033cc !important;
+        text-decoration: underline !important;
+        display: block !important;
+        margin-bottom: 10px !important;
+      }
+    `;
+    
+    // Inject sub-navigation header above main feed
+    if (!ytHeader) {
+      ytHeader = document.createElement("div");
+      ytHeader.id = "insta-yt05-header";
+      ytHeader.style.width = "100%";
+      ytHeader.style.backgroundColor = "#e5e5e5";
+      ytHeader.style.border = "1px solid #cccccc";
+      ytHeader.style.padding = "8px 12px";
+      ytHeader.style.marginBottom = "20px";
+      ytHeader.style.boxSizing = "border-box";
+      ytHeader.style.display = "flex";
+      ytHeader.style.justifyContent = "center";
+      ytHeader.style.alignItems = "center";
+      ytHeader.style.fontSize = "12px";
+      ytHeader.style.fontFamily = "Arial, sans-serif";
+      ytHeader.innerHTML = `
+        <span style="color: #000; font-weight: bold; margin-right: 15px; font-size: 13px;">Most Viewed</span>
+        <a href="#" onclick="return false;" style="color: #0033cc; text-decoration: underline; margin: 0 8px;">Today</a> |
+        <a href="#" onclick="return false;" style="color: #0033cc; text-decoration: underline; margin: 0 8px;">This Week</a> |
+        <a href="#" onclick="return false;" style="color: #0033cc; text-decoration: underline; margin: 0 8px;">This Month</a> |
+        <a href="#" onclick="return false;" style="color: #0033cc; text-decoration: underline; margin: 0 8px; font-weight: bold;">All Time</a>
+        <span style="margin-left: auto; color: #666; font-size: 11px;">Videos 1-20 of 100</span>
+      `;
+      
+      const mainEl = document.querySelector("main[role='main']") || document.querySelector("div[data-insta-role='structural-div-1']");
+      if (mainEl) {
+        mainEl.prepend(ytHeader);
+      }
+    }
+
+  } else {
+    if (styleEl) styleEl.remove();
+    if (ytHeader) ytHeader.remove();
+  }
+}
+
+function applyInstaOldMode(active) {
+  let styleEl = document.getElementById("insta-instaold-mode-style");
+  if (active) {
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "insta-instaold-mode-style";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `
+      @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+      
+      /* Old Instagram 2011/2012 Theme */
+      body, html, main, [role="main"], div.html-div, div[class*="html-div"], div[data-insta-role="structural-div-1"] {
+        background-color: #edeeee !important;
+        background-image: none !important;
+      }
+      
+      div:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not([data-insta-role="structural-div-1"]) {
+        background-color: transparent !important;
+        box-shadow: none !important;
+      }
+
+      *:not(#insta-favorites-sidebar):not(#insta-favorites-sidebar *):not(#insta-favorites-trigger):not(#insta-favorites-trigger *) {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+        color: #333333 !important;
+        text-shadow: none !important;
+      }
+
+      /* Desktop navigation sidebar & mobile headers */
+      div[role="navigation"], nav[role="navigation"], header, div[class*="Navigation"], nav[class*="Navigation"] {
+        background: linear-gradient(to bottom, #517fa4 0%, #3f729b 100%) !important;
+        border-right: 1px solid #2d506d !important;
+        border-bottom: 1px solid #2d506d !important;
+      }
+
+      div[role="navigation"] span, div[role="navigation"] a, div[role="navigation"] div[role="button"] {
+        color: #ffffff !important;
+        font-weight: bold !important;
+        text-shadow: 0 -1px 0 rgba(0,0,0,0.4) !important;
+      }
+
+      div[role="navigation"] a:hover, div[role="navigation"] div[role="button"]:hover {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+      }
+
+      div[role="navigation"] svg {
+        fill: #ffffff !important;
+        stroke: #ffffff !important;
+        color: #ffffff !important;
+      }
+
+      /* Expand link wrapper to fit cursive script logo */
+      a[href="/"]:has(svg[aria-label="Instagram"]),
+      a[href="/"]:has(svg[aria-label="Logotipo de Instagram"]),
+      a[href="/"]:has(svg[aria-label="Instagram logo"]),
+      a[href="/"]:has(svg._8-yf) {
+        width: 150px !important;
+        height: 40px !important;
+        display: block !important;
+        overflow: visible !important;
+      }
+
+      /* Logo Replacement */
+      svg[aria-label="Instagram"],
+      svg[aria-label="Logotipo de Instagram"],
+      svg[aria-label="Instagram logo"],
+      svg._8-yf {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 40' width='150' height='40'><text x='5' y='30' font-family='Pacifico, cursive' font-size='28' fill='%23fff'>Instagram</text></svg>") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: left center !important;
+        width: 150px !important;
+        height: 40px !important;
+      }
+      svg[aria-label="Instagram"] *,
+      svg[aria-label="Logotipo de Instagram"] *,
+      svg[aria-label="Instagram logo"] *,
+      svg._8-yf * {
+        display: none !important;
+      }
+
+      /* Post / Article Styling */
+      article {
+        background-color: #ffffff !important;
+        border: 1px solid #d9d9d9 !important;
+        border-radius: 4px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+        padding: 0px !important;
+        margin-bottom: 24px !important;
+        overflow: hidden !important;
+      }
+      article header {
+        background-color: #ffffff !important;
+        border-bottom: none !important;
+        padding: 12px 16px !important;
+        margin: 0px !important;
+        border-radius: 4px 4px 0 0 !important;
+      }
+      article header a, article header span {
+        font-weight: bold !important;
+        color: #3f729b !important;
+      }
+
+      /* Post details, comments, captions styling */
+      article time, article span, article div {
+        color: #333333 !important;
+      }
+      a, span[role="link"], ._aa-y, ._aacl._aaco._aacw._aacx._aad7._aade {
+        color: #3f729b !important;
+        font-weight: bold !important;
+        text-decoration: none !important;
+      }
+      a:hover, span[role="link"]:hover {
+        text-decoration: underline !important;
+      }
+
+      /* Unliked Heart -> blue-grey outline heart */
+      svg:has(path[d^="M16.792"]) {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233f729b' stroke-width='2'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        width: 24px !important;
+        height: 24px !important;
+      }
+      svg:has(path[d^="M16.792"]) * {
+        display: none !important;
+      }
+
+      /* Liked Heart -> solid blue heart */
+      svg[color="rgb(255, 48, 64)"], 
+      svg[fill="rgb(255, 48, 64)"],
+      svg[color="#ff3040"],
+      svg:has(path[fill="rgb(255, 48, 64)"]),
+      svg:has(path[d^="M3.478"]),
+      svg:has(path[d^="M12 21.35"]) {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233f729b'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        width: 24px !important;
+        height: 24px !important;
+      }
+      svg[color="rgb(255, 48, 64)"] *, 
+      svg[fill="rgb(255, 48, 64)"] *,
+      svg[color="#ff3040"] *,
+      svg:has(path[fill="rgb(255, 48, 64)"]) *,
+      svg:has(path[d^="M3.478"]) *,
+      svg:has(path[d^="M12 21.35"]) * {
+        display: none !important;
+      }
+    `;
+  } else {
+    if (styleEl) styleEl.remove();
+  }
+}
+
+function applySecretCodes(code) {
+  const normCode = (code || "").trim().toLowerCase();
+  
+  applyMatrixMode(normCode === "matrix");
+  applyAngineMode(normCode === "angine");
+  applyCyberpunkMode(normCode === "cyberpunk");
+  applyRetroMode(normCode === "retro" || normCode === "gameboy");
+  applyOceanMode(normCode === "ocean" || normCode === "aqua");
+  applyPsychedelicMode(normCode === "psychedelic" || normCode === "rainbow");
+  applyMinecraftMode(normCode === "minecraft");
+  applyYt05Mode(normCode === "yt05");
+  applyInstaOldMode(normCode === "instaold");
+  applyHackerMode(normCode === "hacker");
+}
+
 function applySavedTheme() {
   chrome.storage.local.get({
     themeAccent: "default",
@@ -929,10 +2255,12 @@ function applySavedTheme() {
     themeBgBlur: 15,
     igCustomFont: "default",
     igCompactMode: false,
-    igFontSize: "m"
+    igFontSize: "m",
+    secretCode: ""
   }, (saved) => {
     applyTheme(saved.themeAccent, saved.themeBg, saved.themeBorders, saved.themeBgTint, saved.themeBgBlur);
     applyInstagramCustomizations(saved.themeAccent, saved.igCustomFont, saved.igCompactMode, saved.igFontSize);
+    applySecretCodes(saved.secretCode);
   });
 }
 
@@ -1202,9 +2530,9 @@ function updateFavoritesSidebar() {
         </div>
       </div>
 
-      <!-- Sección: Tono de Fondo (Favoritos) -->
+      <!-- Sección: Tono de Fondo Principal -->
       <div class="settings-section">
-        <span class="settings-section-title">Tono de Fondo (Favoritos)</span>
+        <span class="settings-section-title">Tono de Fondo Principal</span>
         <select id="sidebar-bg-tint" class="select-input-small">
           <option value="default">Cyber Dark (Por defecto)</option>
           <option value="slate">Gris Slate</option>
@@ -1214,9 +2542,9 @@ function updateFavoritesSidebar() {
         </select>
       </div>
 
-      <!-- Sección: Desenfocar Fondo (Favoritos) -->
+      <!-- Sección: Desenfocar Fondo Principal -->
       <div class="settings-section">
-        <span class="settings-section-title">Desenfocar Fondo: <span id="blur-val-display">15px</span></span>
+        <span class="settings-section-title">Desenfocar Fondo Principal: <span id="blur-val-display">15px</span></span>
         <div class="settings-slider-row">
           <input type="range" id="sidebar-bg-blur" min="0" max="30" value="15" class="range-input-small">
         </div>
@@ -1272,7 +2600,7 @@ function updateFavoritesSidebar() {
 
       <!-- Sección: Imagen de Fondo -->
       <div class="settings-section">
-        <span class="settings-section-title">Imagen de Fondo (Favoritos)</span>
+        <span class="settings-section-title">Imagen de Fondo Principal</span>
         <div class="bg-upload-container">
           <label class="bg-upload-btn" for="bg-image-input">
             📁 Subir Imagen
@@ -1284,7 +2612,16 @@ function updateFavoritesSidebar() {
             <button id="bg-remove-btn" class="bg-remove-btn">Quitar</button>
           </div>
         </div>
-        <p class="settings-help">Carga una imagen (PNG/JPG) para el fondo del panel.</p>
+        <p class="settings-help">Carga una imagen (PNG/JPG) para el fondo principal de Instagram.</p>
+      </div>
+
+      <!-- Sección: Código Secreto (Easter Egg) -->
+      <div class="settings-section">
+        <span class="settings-section-title">Código Secreto</span>
+        <div class="settings-row-dropdown">
+          <input type="text" id="settings-secret-code" class="text-input-small" placeholder="Escribe un código secreto...">
+        </div>
+        <p class="settings-help" style="margin-top: 4px;">Introduce un código para desbloquear modos ocultos.</p>
       </div>
 
       <button id="settings-reset-btn" class="settings-reset-btn">Restablecer Todo</button>
@@ -1299,7 +2636,8 @@ function updateFavoritesSidebar() {
     themeBgBlur: 15,
     igCustomFont: "default",
     igCompactMode: false,
-    igFontSize: "m"
+    igFontSize: "m",
+    secretCode: ""
   }, (saved) => {
     // 1. Color Palette dots
     const dots = container.querySelectorAll(".color-dot");
@@ -1442,6 +2780,16 @@ function updateFavoritesSidebar() {
       });
     });
 
+    // 7b. Secret Code input logic
+    const secretCodeInput = container.querySelector("#settings-secret-code");
+    secretCodeInput.value = saved.secretCode || "";
+    secretCodeInput.addEventListener("input", (e) => {
+      const codeVal = e.target.value;
+      chrome.storage.local.set({ secretCode: codeVal }, () => {
+        applySecretCodes(codeVal);
+      });
+    });
+
     // 8. Reset button
     const resetBtn = container.querySelector("#settings-reset-btn");
     resetBtn.addEventListener("click", () => {
@@ -1453,7 +2801,8 @@ function updateFavoritesSidebar() {
         themeBgBlur: 15,
         igCustomFont: "default",
         igCompactMode: false,
-        igFontSize: "m"
+        igFontSize: "m",
+        secretCode: ""
       };
 
       chrome.storage.local.set(defaults, () => {
@@ -1471,9 +2820,11 @@ function updateFavoritesSidebar() {
         igCompactInput.checked = false;
         previewContainer.style.display = "none";
         previewThumb.style.backgroundImage = "none";
+        secretCodeInput.value = "";
 
         applyTheme("default", "default", false, "default", 15);
         applyInstagramCustomizations("default", "default", false, "m");
+        applySecretCodes("");
       });
     });
   });
@@ -1628,6 +2979,7 @@ function createFavoriteCard(fav, isCondensed = false) {
 
 // Initial check for existing media and pathname
 checkPathname();
+injectDOMIdentifiers();
 document.querySelectorAll("video").forEach(addVideoTools);
 document.querySelectorAll("img").forEach(addImageTools);
 

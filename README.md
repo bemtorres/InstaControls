@@ -13,11 +13,7 @@
 ## Features
 
 - **Native Video Controls**: Enables the standard browser playback bar (play/pause, volume, fullscreen, playback speed) on any video.
-- **Interactive Settings Popup**: Modern glassmorphic panel accessible from the extension icon to customize preferences:
-  - Auto-enable native controls.
-  - Turn keyboard shortcuts on/off.
-  - Toggle volume persistence.
-  - Set arrow seeking interval (5s, 10s, 15s).
+- **Interactive Settings Popup**: Modern glassmorphic panel accessible from the extension icon to customize video seeking, auto-controls, shortcuts, and volume persistence.
 - **Keyboard Shortcuts**: Control video playback by hovering your cursor over them:
   - `Left / Right Arrow`: Seek backward or forward.
   - `M`: Toggle mute/unmute.
@@ -29,9 +25,23 @@
   - Save posts instantly by clicking the star icon on any image/video overlay.
   - Access saved content through a floating trigger button and a gorgeous slide-in sidebar.
   - Filter and group your favorites by creator, or view recent items.
-  - **Sidebar Aesthetics customization**: Choose custom accent colors (Cyber Pink, Electric Blue, Emerald Green, Sunset Orange, Golden Yellow) and upload a custom background image (saved locally in storage).
+  - **Batch Selection**: Multi-select saved posts to download or delete them simultaneously.
+- **Advanced UI Customization (InstaControl Deluxe)**:
+  - **Global Background System**: Upload a custom background image applied to the entire Instagram page, layered with customizable glassmorphic backdrop-blur and colored tints (Slate, Midnight, Forest, Pure Black). The sidebar remains neutral and dark for clean legibility.
+  - **Typography & Font Scaling**: Apply premium fonts (Outfit, Inter, Montserrat, Poppins, Playfair Display) and adjust interface font scaling from XS to XL.
+  - **Compact Mode**: Narrow the feed columns (450px) and crop tall assets for a highly optimized, scroll-friendly layout.
 - **Universal Downloads**: Download **Videos** (Reels, Stories, Feed) and **Photos** in high quality.
 - **Open in New Tab**: View direct source files instantly (or open the post page if the video is streamed via blob).
+- **Secret Codes (Easter Eggs)**: Enter these secret strings in the "Código Secreto" field to transform the entire layout:
+  - `matrix`: Spawns a cascade of falling digital rain code on a background canvas, turning text green and monospace.
+  - `angine`: Applies a pitch-black background covered in a staggered grid of pulsing and zooming white dots.
+  - `cyberpunk`: Glows text with pink/cyan neon flickers, sets a deep purple background, and increases media color grading saturation.
+  - `retro` / `gameboy`: Switches text to an 8-bit game font (uppercase) on Game Boy green boxes, adding a flickering CRT scanline filter.
+  - `ocean` / `aqua`: Animates floating bubbles rising randomly behind posts, applying a gentle watery wave oscillation.
+  - `psychedelic` / `rainbow`: Rotates background hues continuously and triggers psychedelic wobbling on hovered articles.
+  - `minecraft`: Styles posts as stone block boxes with 3D inset borders, sets text in VT323 pixel font, and replaces Instagram's hearts with **Minecraft hearts**.
+  - `yt05`: Recreates YouTube's classic 2005 look with Arial font, blue links, red rounded logos, and replaces likes with **5-star rating stars**.
+  - `instaold`: Recreates Instagram's classic 2011/2012 layout with the cursive white header logo, light-grey textured background, framed posts, and classic **blue heart likes**.
 - **Reels & Stories Alignment**: Repositioned controls to outer safe zones (such as stories' side black bars) so they never overlap the content.
 
 ## Installation
