@@ -1,3 +1,4 @@
+/* Overlay base layout */
 .insta-tools-overlay {
   position: absolute;
   top: 60px;
@@ -15,6 +16,18 @@
   transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* Move the overlay lower on Reels to avoid overlapping native Instagram buttons */
+body.insta-is-reels-page .insta-tools-overlay {
+  top: 120px;
+}
+
+/* Move the overlay inside Stories to the black side margins so it doesn't cover content */
+body.insta-is-stories-page .insta-tools-overlay {
+  top: 100px;
+  right: -55px;
+  padding-left: 25px; /* Bridge the gap to maintain hover state when moving cursor to the side */
+}
+
 /* Show when parent is hovered OR if it is a static overlay (images) */
 .insta-wrapper-hook:hover .insta-tools-overlay,
 .insta-tools-overlay:hover,
@@ -23,34 +36,44 @@
   transform: none !important;
 }
 
+/* Overlay Buttons */
 .insta-tools-btn {
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background-color: rgba(15, 12, 28, 0.75);
+  backdrop-filter: blur(8px);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 50%;
-  /* Circular buttons */
   width: 36px;
   height: 36px;
   padding: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .insta-tools-btn:hover {
-  background-color: rgba(255, 255, 255, 0.9);
-  color: #000;
+  background-color: white;
+  color: #0b0713;
   transform: scale(1.1);
   border-color: transparent;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
 }
 
 .insta-tools-btn svg {
   display: block;
-  /* Removes any extra line-height spacing */
+}
+
+/* Gold active state for favorites */
+.insta-tools-btn.insta-fav-btn.is-favorited {
+  color: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.insta-tools-btn.insta-fav-btn.is-favorited svg.star-icon {
+  fill: #f59e0b !important;
+  stroke: #f59e0b !important;
 }
 
 /* Ensure controls don't get hidden by obscure overlays */
@@ -58,3 +81,913 @@ video[controls] {
   z-index: 100 !important;
   position: relative !important;
 }
+
+/* ==========================================
+   FAVORITES SIDEBAR & FLOATING BUTTON STYLE
+   ========================================== */
+
+#insta-favorites-trigger {
+  position: fixed;
+  bottom: 20px;
+  right: 320px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  z-index: 99999999;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+#insta-favorites-trigger:hover {
+  transform: scale(1.1) rotate(15deg);
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.65);
+}
+
+#insta-favorites-sidebar {
+  --fav-accent-gradient: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  --fav-accent-color: #ec4899;
+  position: fixed;
+  top: 0;
+  right: -320px;
+  width: 300px;
+  height: 100vh;
+  background: transparent; /* Overlay tint handles background color */
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
+  z-index: 100000000;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f3f4f6;
+  text-align: left;
+  overflow: hidden;
+}
+
+/* Background image overlay */
+#insta-favorites-sidebar .sidebar-bg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  z-index: -2;
+  display: none;
+}
+
+/* Translucent dark glass overlay */
+#insta-favorites-sidebar .sidebar-tint-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 7, 18, 0.82);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  z-index: -1;
+}
+
+#insta-favorites-sidebar.open {
+  right: 0;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* Metadata and badges inside cards */
+.card-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-type-badge {
+  font-size: 8px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.card-type-badge.reel {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.25);
+}
+
+.card-type-badge.video {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.card-type-badge.imagen {
+  background: rgba(20, 184, 166, 0.15);
+  color: #2dd4bf;
+  border: 1px solid rgba(20, 184, 166, 0.25);
+}
+
+.sidebar-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  background: var(--fav-accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#insta-sidebar-close {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 18px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 4px;
+}
+
+#insta-sidebar-close:hover {
+  color: white;
+}
+
+/* Sidebar Tabs */
+.sidebar-tabs {
+  display: flex;
+  padding: 10px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-tab {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.sidebar-tab:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-tab.active {
+  color: white;
+  background: var(--fav-accent-gradient);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Settings View inside Sidebar */
+.sidebar-settings-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 4px;
+  position: relative;
+  z-index: 1;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.settings-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9ca3af;
+}
+
+.color-palette {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.color-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.color-dot:hover {
+  transform: scale(1.15);
+}
+
+.color-dot.active {
+  border-color: white;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.color-dot.default { background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); }
+.color-dot.blue { background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%); }
+.color-dot.green { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); }
+.color-dot.orange { background: linear-gradient(135deg, #f97316 0%, #facc15 100%); }
+.color-dot.gold { background: linear-gradient(135deg, #eab308 0%, #fde047 100%); }
+
+.bg-upload-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.bg-upload-btn {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bg-upload-btn:hover {
+  background: white;
+  color: #0b0713;
+  border-color: transparent;
+}
+
+.bg-preview-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bg-preview-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.bg-remove-btn {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bg-remove-btn:hover {
+  background: #ef4444;
+  color: white;
+  border-color: transparent;
+}
+
+.settings-help {
+  font-size: 9px;
+  color: #9ca3af;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.settings-reset-btn {
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: #9ca3af;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+}
+
+.settings-reset-btn:hover {
+  border-color: #ef4444;
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+/* Sidebar Scrollable Content */
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Empty State */
+.sidebar-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Favorite Media Card */
+.favorite-card {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 6px;
+  gap: 8px;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.favorite-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.card-thumb-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center;
+  background-color: #121021;
+  position: relative;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.card-link-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+}
+
+.card-details {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-username {
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 12px;
+  transition: color 0.2s ease;
+}
+
+.card-username:hover {
+  color: #d946ef;
+  text-decoration: underline;
+}
+
+.card-date {
+  color: #9ca3af;
+  font-size: 9px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.card-action-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.card-action-btn:hover {
+  background: white;
+  color: #0b0713;
+  border-color: transparent;
+}
+
+.card-action-btn.card-delete-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* Condensed Card for Creators Grid */
+.favorite-card.condensed {
+  background: transparent;
+  border: none;
+  padding: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.favorite-card.condensed:hover {
+  transform: scale(1.03);
+}
+.favorite-card.condensed .card-thumb-wrapper {
+  width: 100%;
+  aspect-ratio: 1;
+  height: auto;
+  border-radius: 8px;
+}
+.favorite-card.condensed .card-details {
+  display: none; /* Hide details on small grid */
+}
+
+/* Creator Accordion Section */
+.creator-section {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.creator-header {
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.03);
+  user-select: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.2s ease;
+}
+
+.creator-header:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.creator-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.creator-count {
+  font-size: 10px;
+  background: rgba(168, 85, 247, 0.2);
+  color: #d946ef;
+  padding: 2px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.creator-items-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 12px;
+  max-height: 500px;
+  transition: max-height 0.3s cubic-bezier(0, 1, 0, 1), padding 0.3s ease;
+  overflow: hidden;
+}
+
+.creator-section.collapsed .creator-items-grid {
+  max-height: 0;
+  padding: 0 12px;
+  border-top-color: transparent;
+}
+
+/* Settings rows and layout elements */
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+.settings-row.dropdown-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.settings-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #e5e7eb;
+}
+.settings-select {
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+.settings-select:focus {
+  border-color: var(--fav-accent-color);
+}
+.settings-select option {
+  background: #110c22;
+  color: white;
+}
+
+/* Small switches inside settings tab */
+.switch-small {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+.switch-small input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider-small {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 18px;
+}
+.slider-small:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+}
+.switch-small input:checked + .slider-small {
+  background: var(--fav-accent-gradient);
+  border-color: transparent;
+}
+.switch-small input:checked + .slider-small:before {
+  transform: translateX(14px);
+}
+
+/* Glowing Neon Borders Effect */
+#insta-favorites-sidebar.glowing-borders {
+  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5), 0 0 15px var(--fav-accent-color);
+  border-left: 2px solid var(--fav-accent-color) !important;
+}
+#insta-favorites-sidebar.glowing-borders .sidebar-header {
+  border-bottom: 2px solid var(--fav-accent-color);
+}
+#insta-favorites-sidebar.glowing-borders .favorite-card {
+  border: 1px solid var(--fav-accent-color);
+  box-shadow: 0 0 8px rgba(var(--fav-accent-rgb, 236, 72, 153), 0.25);
+  animation: borderGlowPulse 3s infinite ease-in-out;
+}
+#insta-favorites-trigger.glowing-borders {
+  box-shadow: 0 0 12px var(--fav-accent-color);
+  border: 1.5px solid white !important;
+}
+
+@keyframes borderGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(var(--fav-accent-rgb, 236, 72, 153), 0.15);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(var(--fav-accent-rgb, 236, 72, 153), 0.4);
+  }
+}
+
+/* Speed Button inside overlays */
+.insta-tools-btn.insta-speed-btn {
+  font-size: 11px !important;
+  font-weight: bold !important;
+  font-family: 'Outfit', sans-serif !important;
+  letter-spacing: -0.2px;
+}
+
+/* Focus / Theater Mode Backdrop */
+#insta-theater-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 999999 !important;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+#insta-theater-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Elevated styling for focused active elements */
+.insta-theater-active {
+  z-index: 1000000 !important;
+  position: relative !important;
+  box-shadow: 0 0 30px rgba(var(--fav-accent-rgb, 236, 72, 153), 0.5) !important;
+  border: 1.5px solid var(--fav-accent-color) !important;
+}
+
+/* Selection Mode styles */
+.sidebar-selection-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.selection-action-btn-small {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.selection-action-btn-small:hover {
+  background: var(--fav-accent-gradient);
+  border-color: transparent;
+}
+
+.selection-action-btn-small.cancel {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.selection-action-btn-small.cancel:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.selection-action-btn-start {
+  width: 100%;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  color: #d1d5db;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.selection-action-btn-start:hover {
+  border-color: var(--fav-accent-color);
+  color: white;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.card-select-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-right: 4px;
+}
+
+.card-select-checkbox {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.card-select-checkbox:checked {
+  background: var(--fav-accent-gradient);
+  border-color: transparent;
+}
+
+.card-select-checkbox:checked::after {
+  content: "✓";
+  position: absolute;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  top: -1.5px;
+  left: 2.5px;
+}
+
+/* Bottom Selection Actions Floating Bar */
+.sidebar-selection-actions {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 12px;
+  background: rgba(15, 12, 28, 0.85);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.sidebar-selection-actions.visible {
+  transform: translateY(0);
+}
+
+.sidebar-selection-actions .action-btn {
+  flex: 1;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.sidebar-selection-actions .action-btn.download {
+  background: var(--fav-accent-gradient);
+  box-shadow: 0 4px 12px rgba(var(--fav-accent-rgb, 236, 72, 153), 0.3);
+}
+
+.sidebar-selection-actions .action-btn.download:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(var(--fav-accent-rgb, 236, 72, 153), 0.4);
+}
+
+.sidebar-selection-actions .action-btn.delete {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.sidebar-selection-actions .action-btn.delete:hover {
+  background: #ef4444;
+  color: white;
+  border-color: transparent;
+}
+
+/* Custom premium select input in sidebar */
+.select-input-small {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #f3f4f6;
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 4px;
+}
+
+.select-input-small:focus {
+  border-color: var(--fav-accent-color);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.select-input-small option {
+  background: #111019;
+  color: #f3f4f6;
+}
+
+/* Custom premium range input in sidebar */
+.range-input-small {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  margin-top: 8px;
+}
+
+.range-input-small::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--fav-accent-gradient);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.range-input-small::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.settings-slider-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.settings-row-dropdown {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.settings-row-dropdown .settings-label {
+  font-size: 11px;
+  color: #d1d5db;
+}
+
+

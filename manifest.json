@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "InstaControls",
-  "version": "1.1",
+  "version": "1.2",
   "author": "bemtorres",
   "description": "Habilita controles nativos y permite descargar videos e imágenes en Instagram.",
   "permissions": [
-    "downloads"
+    "downloads",
+    "storage"
   ],
   "host_permissions": [
     "*://*.instagram.com/*"
@@ -23,7 +24,8 @@
     "128": "assets/instacontrols.png"
   },
   "action": {
-    "default_icon": "assets/instacontrols.png"
+    "default_icon": "assets/instacontrols.png",
+    "default_popup": "popup.html"
   },
   "background": {
     "service_worker": "background.js"

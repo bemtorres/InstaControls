@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ajustes de InstaControls</title>
+  <link rel="stylesheet" href="popup.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="header">
+      <div class="logo-wrapper">
+        <span class="logo-text">Insta<span class="logo-highlight">Controls</span></span>
+        <span class="version-badge">v1.2</span>
+      </div>
+      <p class="subtitle">Personaliza tu experiencia en Instagram</p>
+    </header>
+
+    <main class="content">
+      <!-- Opción: Controles nativos automáticos -->
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-title">Controles Nativa</span>
+          <span class="setting-desc">Activa automáticamente la barra nativa de video</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="autoControls">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- Opción: Atajos de teclado -->
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-title">Atajos de Teclado</span>
+          <span class="setting-desc">Flechas avanzan/retroceden, M silencia</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="keyboardShortcuts" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- Opción: Persistencia de volumen -->
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-title">Recordar Volumen</span>
+          <span class="setting-desc">Mantiene el nivel de volumen entre videos</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="persistVolume" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- Opción: Tiempo de salto para atajos -->
+      <div class="setting-item dropdown-item">
+        <div class="setting-info">
+          <span class="setting-title">Tiempo de salto</span>
+          <span class="setting-desc">Segundos al presionar Flecha Der/Izq</span>
+        </div>
+        <select id="skipSeconds" class="select-input">
+          <option value="5">5 segundos</option>
+          <option value="10" selected>10 segundos</option>
+          <option value="15">15 segundos</option>
+        </select>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p class="footer-note">Desarrollado con ❤️ por bemtorres</p>
+    </footer>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
